@@ -176,12 +176,12 @@ jQuery.offset = {
 			options = options.call( elem, i, curOffset );
 		}
 
-		if (options.top != null) {
-			props.top = (options.top - curOffset.top) + curTop;
-		}
-		if (options.left != null) {
-			props.left = (options.left - curOffset.left) + curLeft;
-		}
+		props = (!curElem.is(":visible") && !curOffset.top && !curOffset.left) || isNaN(curTop) || isNaN(curLeft) ?  
+		{ top : options.top, left: options.left }
+		: {
+			top:  (options.top  - curOffset.top)  + curTop,
+			left: (options.left - curOffset.left) + curLeft
+		};
 		
 		if ( "using" in options ) {
 			options.using.call( elem, props );

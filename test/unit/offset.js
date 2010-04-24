@@ -413,6 +413,19 @@ test("offsetParent", function(){
 	equals( div[1], jQuery("#nothiddendiv")[0], "The div is the offsetParent." );
 });
 
+
+test("hiddenOffset",function(){
+	//tests for chrome returning curTop/Left =0 with hidden elements or absolutely positioned elements with no
+	//top/left set
+	var div = jQuery("<div style='position:absolute;top:200px; left: 200px;width:100px;height:100px'></div>")
+	div.appendTo(document.body).hide();
+	div.offset({top: 100, left: 100});
+	div.show();
+	equals(div.offset().top, 100, "The div's top is set correctly")
+	equals(div.offset().left, 100, "The div's bottom is set correctly")
+	div.remove();
+})
+
 function testoffset(name, fn) {
 	
 	test(name, function() {
