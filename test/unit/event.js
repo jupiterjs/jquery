@@ -1785,7 +1785,21 @@ test("Non DOM element events", function() {
 
 	jQuery(o).trigger('nonelementobj');
 });
-
+test("focusin bubbles", function(){
+	//create an input and focusin on it
+	var input = jQuery("<input/>"),
+		order = 0;
+	input.appendTo(document.body);
+	jQuery(document.body).bind("focusin.focusinBubblesTest",function(){
+		equals(1,order++,"focusin on the body second")
+	})
+	input.bind("focusin.focusinBubblesTest",function(){
+		equals(0,order++,"focusin on the element first")
+	})
+	input[0].focus();
+	input.remove();
+	jQuery(document.body).unbind("focusin.focusinBubblesTest");
+})
 /*
 test("jQuery(function($) {})", function() {
 	stop();
