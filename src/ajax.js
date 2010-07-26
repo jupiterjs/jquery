@@ -238,9 +238,6 @@ jQuery.extend({
 
 			// Handle JSONP-style loading
 			window[ jsonp ] = window[ jsonp ] || function( tmp ) {
-				data = tmp;
-				jQuery.ajax.handleSuccess( s, xhr, status, data );
-				jQuery.ajax.handleComplete( s, xhr, status, data );
 				// Garbage collect
 				window[ jsonp ] = undefined;
 
@@ -251,6 +248,11 @@ jQuery.extend({
 				if ( head ) {
 					head.removeChild( script );
 				}
+				
+				data = tmp;
+				jQuery.ajax.handleSuccess( s, xhr, status, data );
+				jQuery.ajax.handleComplete( s, xhr, status, data );
+				
 			};
 		}
 
