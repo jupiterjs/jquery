@@ -68,6 +68,50 @@ test("jQuery.ajax() - error callbacks", function() {
 	});
 });
 
+test(".ajax() - hash", function() {
+	expect(3);
+
+	jQuery.ajax({
+		url: "data/name.html#foo",
+		beforeSend: function( xhr, settings ) {
+			equals(settings.url, "data/name.html", "Make sure that the URL is trimmed.");
+			return false;
+		}
+	});
+
+	jQuery.ajax({
+		url: "data/name.html?abc#foo",
+		beforeSend: function( xhr, settings ) {
+			equals(settings.url, "data/name.html?abc", "Make sure that the URL is trimmed.");
+			return false;
+		}
+	});
+
+	jQuery.ajax({
+		url: "data/name.html?abc#foo",
+		data: { "test": 123 },
+		beforeSend: function( xhr, settings ) {
+			equals(settings.url, "data/name.html?abc&test=123", "Make sure that the URL is trimmed.");
+			return false;
+		}
+	});
+});
+
+test(".ajax() - 304", function() {
+	expect( 1 );
+	stop();
+
+	jQuery.ajax({
+		url: url("data/notmodified.php"),
+		success: function(){ ok(true, "304 ok"); },
+		// Do this because opera simply refuses to implement 304 handling :(
+		// A feature-driven way of detecting this would be appreciated
+		// See: http://gist.github.com/599419
+		error: function(){ ok(jQuery.browser.opera, "304 not ok "); },
+		complete: function(xhr){ start(); }
+	});
+});
+
 test(".load()) - 404 error callbacks", function() {
 	expect( 6 );
 	stop();
@@ -321,11 +365,11 @@ test("serialize()", function() {
 	);
 
 	equals( jQuery('#form').serialize(),
-		"action=Test&radio2=on&check=on&hidden=&foo%5Bbar%5D=&name=name&search=search&email=dave%40jquery.com&number=43&select1=&select2=3&select3=1&select3=2",
+		"action=Test&radio2=on&check=on&hidden=&foo%5Bbar%5D=&name=name&search=search&email=dave%40jquery.com&number=43&select1=&select2=3&select3=1&select3=2&select5=3",
 		'Check form serialization as query string');
 
 	equals( jQuery('#form :input').serialize(),
-		"action=Test&radio2=on&check=on&hidden=&foo%5Bbar%5D=&name=name&search=search&email=dave%40jquery.com&number=43&select1=&select2=3&select3=1&select3=2",
+		"action=Test&radio2=on&check=on&hidden=&foo%5Bbar%5D=&name=name&search=search&email=dave%40jquery.com&number=43&select1=&select2=3&select3=1&select3=2&select5=3",
 		'Check input serialization as query string');
 
 	equals( jQuery('#testForm').serialize(),
@@ -337,7 +381,7 @@ test("serialize()", function() {
 		'Check input serialization as query string');
 
 	equals( jQuery('#form, #testForm').serialize(),
-		"action=Test&radio2=on&check=on&hidden=&foo%5Bbar%5D=&name=name&search=search&email=dave%40jquery.com&number=43&select1=&select2=3&select3=1&select3=2&T3=%3F%0AZ&H1=x&H2=&PWD=&T1=&T2=YES&My+Name=me&S1=abc&S3=YES&S4=",
+		"action=Test&radio2=on&check=on&hidden=&foo%5Bbar%5D=&name=name&search=search&email=dave%40jquery.com&number=43&select1=&select2=3&select3=1&select3=2&select5=3&T3=%3F%0AZ&H1=x&H2=&PWD=&T1=&T2=YES&My+Name=me&S1=abc&S3=YES&S4=",
 		'Multiple form serialization as query string');
 
   /* Temporarily disabled. Opera 10 has problems with form serialization.
@@ -349,7 +393,7 @@ test("serialize()", function() {
 });
 
 test("jQuery.param()", function() {
-	expect(19);
+	expect(22);
 	
 	equals( !jQuery.ajaxSettings.traditional, true, "traditional flag, falsy by default" );
   
@@ -378,6 +422,11 @@ test("jQuery.param()", function() {
 	equals( jQuery.param(params,true), "a=1&a=2&b=%5Bobject+Object%5D&i=10&i=11&j=true&k=false&l=undefined&l=0&m=cowboy+hat%3F", "huge structure, forced traditional" );
 
 	equals( decodeURIComponent( jQuery.param({ a: [1,2,3], 'b[]': [4,5,6], 'c[d]': [7,8,9], e: { f: [10], g: [11,12], h: 13 } }) ), "a[]=1&a[]=2&a[]=3&b[]=4&b[]=5&b[]=6&c[d][]=7&c[d][]=8&c[d][]=9&e[f][]=10&e[g][]=11&e[g][]=12&e[h]=13", "Make sure params are not double-encoded." );
+
+	// Make sure empty arrays and objects are handled #6481
+	equals( jQuery.param({"foo": {"bar": []} }), "foo%5Bbar%5D=", "Empty array param" );
+	equals( jQuery.param({"foo": {"bar": [], foo: 1} }), "foo%5Bbar%5D=&foo%5Bfoo%5D=1", "Empty array param" );
+	equals( jQuery.param({"foo": {"bar": {}} }), "foo%5Bbar%5D=", "Empty object param" );
 	
 	jQuery.ajaxSetup({ traditional: true });
 	
@@ -1163,6 +1212,19 @@ test("data option: evaluate function values (#2806)", function() {
 	})
 });
 
+test("data option: empty bodies for non-GET requests", function() {
+	stop();
+	jQuery.ajax({
+		url: "data/echoData.php",
+		data: undefined,
+		type: "post",
+		success: function(result) {
+			equals( result, "" );
+			start();
+		}
+	})
+});
+
 test("jQuery.ajax - If-Modified-Since support", function() {
 	expect( 3 );
 
@@ -1188,8 +1250,23 @@ test("jQuery.ajax - If-Modified-Since support", function() {
 						ok(data == null, "response body should be empty")
 					}
 					start();
+				},
+				error: function() {
+					// Do this because opera simply refuses to implement 304 handling :(
+					// A feature-driven way of detecting this would be appreciated
+					// See: http://gist.github.com/599419
+					ok(jQuery.browser.opera, "error");
+					ok(jQuery.browser.opera, "error");
+					start();
 				}
 			});
+		},
+		error: function() {
+			// Do this because opera simply refuses to implement 304 handling :(
+			// A feature-driven way of detecting this would be appreciated
+			// See: http://gist.github.com/599419
+			ok(jQuery.browser.opera, "error");
+			start();
 		}
 	});
 });
@@ -1219,11 +1296,31 @@ test("jQuery.ajax - Etag support", function() {
 						ok(data == null, "response body should be empty")
 					}
 					start();
+				},
+				error: function() {
+					// Do this because opera simply refuses to implement 304 handling :(
+					// A feature-driven way of detecting this would be appreciated
+					// See: http://gist.github.com/599419
+					ok(jQuery.browser.opera, "error");
+					ok(jQuery.browser.opera, "error");
+					start();
 				}
 			});
+		},
+		error: function() {
+			// Do this because opera simply refuses to implement 304 handling :(
+			// A feature-driven way of detecting this would be appreciated
+			// See: http://gist.github.com/599419
+			ok(jQuery.browser.opera, "error");
+			start();
 		}
 	});
 });
+
+test("jQuery.ajax - active counter", function() {
+    ok( jQuery.active == 0, "ajax active counter should be zero: " + jQuery.active );
+});
+
 
 }
 

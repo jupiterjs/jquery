@@ -206,6 +206,45 @@ test("bind/one/unbind(Object)", function(){
 	equals( mouseoverCounter, 4, "bind(Object)" );
 });
 
+test("live/die(Object), delegate/undelegate(String, Object)", function() {
+	expect(6);
+	
+	var clickCounter = 0, mouseoverCounter = 0,
+		$p = jQuery("#firstp"), $a = $p.find("a:first");
+	
+	var events = {
+		click: function( event ) {
+			clickCounter += ( event.data || 1 );
+		},
+		mouseover: function( event ) {
+			mouseoverCounter += ( event.data || 1 );
+		}
+	};
+	
+	function trigger() {
+		$a.trigger("click").trigger("mouseover");
+	}
+	
+	$a.live( events );
+	$p.delegate( "a", events, 2 );
+	
+	trigger();
+	equals( clickCounter, 3, "live/delegate" );
+	equals( mouseoverCounter, 3, "live/delegate" );
+	
+	$p.undelegate( "a", events );
+	
+	trigger();
+	equals( clickCounter, 4, "undelegate" );
+	equals( mouseoverCounter, 4, "undelegate" );
+	
+	$a.die( events );
+	
+	trigger();
+	equals( clickCounter, 4, "die" );
+	equals( mouseoverCounter, 4, "die" );
+});
+
 test("bind(), iframes", function() {
 	// events don't work with iframes, see #939 - this test fails in IE because of contentDocument
 	var doc = jQuery("#loadediframe").contents();
@@ -216,7 +255,7 @@ test("bind(), iframes", function() {
 });
 
 test("bind(), trigger change on select", function() {
-	expect(3);
+	expect(5);
 	var counter = 0;
 	function selectOnChange(event) {
 		equals( event.data, counter++, "Event.data is not a global event object" );
@@ -404,7 +443,7 @@ test("bind(name, false), unbind(name, false)", function() {
 });
 
 test("bind()/trigger()/unbind() on plain object", function() {
-	expect( 2 );
+	expect( 7 );
 
 	var obj = {};
 
@@ -418,7 +457,12 @@ test("bind()/trigger()/unbind() on plain object", function() {
 		ok( true, "Custom event run." );
 	});
 
-	ok( jQuery(obj).data("events"), "Object has events bound." );
+	var events = jQuery(obj).data("__events__");
+	ok( events, "Object has events bound." );
+	equals( obj.events, undefined, "Events object on plain objects is not events" );
+	equals( typeof events, "function", "'events' expando is a function on plain objects." );
+	equals( obj.test, undefined, "Make sure that test event is not on the plain object." );
+	equals( obj.handle, undefined, "Make sure that the event handler is not on the plain object." );
 
 	// Should trigger 1
 	jQuery(obj).trigger("test");
@@ -430,6 +474,8 @@ test("bind()/trigger()/unbind() on plain object", function() {
 
 	// Make sure it doesn't complain when no events are found
 	jQuery(obj).unbind("test");
+	
+	equals( obj.__events__, undefined, "Make sure events object is removed" );
 });
 
 test("unbind(type)", function() {
@@ -1785,6 +1831,19 @@ test("Non DOM element events", function() {
 
 	jQuery(o).trigger('nonelementobj');
 });
+
+test("window resize", function() {
+	expect(2);
+
+	jQuery(window).unbind();
+
+	jQuery(window).bind("resize", function(){
+		ok( true, "Resize event fired." );
+	}).resize().unbind("resize");
+
+	ok( !jQuery(window).data("__events__"), "Make sure all the events are gone." );
+});
+
 test("focusin bubbles", function(){
 	//create an input and focusin on it
 	var input = jQuery("<input/>"),

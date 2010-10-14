@@ -10,7 +10,7 @@ div#fx-tests h4.pass {
 }
 
 div#fx-tests div.box {
-        background: red url(data/cow.jpg) no-repeat;
+        background: red;
         overflow: hidden;
         border: 2px solid #000;
 }
@@ -102,6 +102,8 @@ div.chain.test div { background: green; }
 div.chain.out { background: green; }
 div.chain.out div { background: red; display: none; }
 
+/* tests to ensure jQuery can determine the native display mode of elements
+   that have been set as display: none in stylesheets */
 div#show-tests * { display: none; }
 
 #nothiddendiv { font-size: 16px; }
